@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.mideng.bean.Idempotent;
-import org.mideng.service.IdempotentHolder;
+import org.mideng.service.IdempotentKeyService;
 import org.mideng.service.IdempotentService;
 import org.mideng.service.RedisLock;
 import org.mideng.util.Constants;
@@ -66,7 +66,7 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 		}
 		idempotent = new Idempotent(requestId, Idempotent.STATUS_START, null, null, null);
 		idempotentService.setCache(requestId, idempotent);//获得锁保存为了不同服务器共享
-		IdempotentHolder.setIdempotentVo(idempotent);
+		IdempotentKeyService.set(requestId);
 
 //		if (DispatcherType.ERROR.equals(dispatcherType)) {//本地保存为了本地forward跳转用
 //			return true;
@@ -101,39 +101,27 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 		String requestUri = request.getRequestURI();
 		int respStatus = response.getStatus();
 		logger.info("[afterCompletion] {}, {}，{}", requestUri, respStatus, ex == null);
+		String requestId = IdempotentKeyService.get();
+		if (requestId == null) return;//非幂等接口
+		Idempotent idempotent = idempotentService.getCache(requestId);
 
-		Idempotent idempotent = IdempotentHolder.getIdempotentVo();
-		if (idempotent == null) return;
-		if (idempotent.getKey() == null) {
-			IdempotentHolder.clear();
-			return;
-		}
-
-		String idempotentKey = idempotent.getKey();
-		// 重定向
-		if (respStatus >= 300 && respStatus < 400) {
-			logger.info("[afterCompletion] a redirect , httpStatusCode:{}", respStatus);
-			idempotent.setStatus(Idempotent.STATUS_REDIRECT);
-			idempotentService.setCache(idempotentKey, idempotent);
-		}
-
+		//保存上次处理完成后返回的所有状态信息
 		if (Idempotent.STATUS_FINISIED.equals(idempotent.getStatus())) {
 			idempotent.setStatusCode(response.getStatus());
 			Collection<String> headerNames = response.getHeaderNames();
 			if (headerNames != null && headerNames.size() != 0) {
 				Map<String, String> headers = new HashMap<>();
 				for (String name : headerNames) {
-					if (name.equals("Date") || name.equals("Connection") || name.equals("Transfer-Encoding")
-							|| name.equals("X-Application-Context")) {
+					if (name.equals("Date") || name.equals("Connection") || name.equals("Transfer-Encoding") || name.equals("X-Application-Context")) {
 						continue;
 					}
 					headers.put(name, response.getHeader(name));
 				}
 				idempotent.setHeaders(headers);
 			}
-			idempotentService.setCache(idempotentKey, idempotent);
+			idempotentService.setCache(requestId, idempotent);
 		}
-		IdempotentHolder.clear();
+		IdempotentKeyService.clear();
 	}
 	
 	

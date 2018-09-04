@@ -3,7 +3,7 @@ package org.mideng.interceptor;
 import java.util.Map;
 
 import org.mideng.bean.Idempotent;
-import org.mideng.service.IdempotentHolder;
+import org.mideng.service.IdempotentKeyService;
 import org.mideng.service.IdempotentService;
 import org.mideng.util.JsonMapper;
 import org.slf4j.Logger;
@@ -38,12 +38,13 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 	 */
 	@Override
 	public boolean supports(MethodParameter arg0, Class<? extends HttpMessageConverter<?>> arg1) {
-		logger.debug("[supports] {}, IdempotentHolder.getIdempotentVo:{}", arg0.getMember().getName(), IdempotentHolder.getIdempotentVo());
-		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getKey()) {
-			return false;
-		} else {
-			return true;
-		}
+//		logger.debug("[supports] {}, IdempotentHolder.getIdempotentVo:{}", arg0.getMember().getName(), IdempotentHolder.getIdempotentVo());
+//		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getKey()) {
+//			return false;
+//		} else {
+//			return true;
+//		}
+		return true;
 	}
 	
 	
@@ -54,11 +55,11 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 	public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
 			Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
 		logger.debug("[beforeBodyWrite] begin {}", body);
-
-		String idempotentKey = IdempotentHolder.getIdempotentVo().getKey();
-		Idempotent idempotent = IdempotentHolder.getIdempotentVo();
-
-		if (body instanceof Map) {
+		String idempotentKey = IdempotentKeyService.get();
+		if(null == idempotentKey) return body;
+		Idempotent idempotent = idempotentService.getCache(idempotentKey);
+		if(null == idempotent) return body;
+		if (body instanceof Map) {//只保存处理结果
 			JsonMapper jsonMapper = new JsonMapper();
 			idempotent.setResult(jsonMapper.toJson(body));
 		} else {
@@ -66,7 +67,6 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 		}
 		idempotent.setStatus(Idempotent.STATUS_FINISIED);
 		idempotentService.setCache(idempotentKey, idempotent);
-		IdempotentHolder.setIdempotentVo(idempotent);
 		logger.debug("[beforeBodyWrite] end");
 		return body;
 	}
