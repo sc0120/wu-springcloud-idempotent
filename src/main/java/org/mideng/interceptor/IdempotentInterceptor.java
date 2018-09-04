@@ -1,4 +1,4 @@
-package org.mideng;
+package org.mideng.interceptor;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -30,14 +30,14 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 	@Autowired
 	private IdempotentService idempotentService;
 
+	//在请求到方法前出发
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
 		String requestId = request.getHeader(Constants.REQ_IDEM_ID);
 		DispatcherType dispatcherType = request.getDispatcherType();
 		String method = request.getMethod().toUpperCase();
-		logger.info("[preHandle] url:{}, requestId:{}, method:{}, dispatcherType:{}", request.getRequestURI(),
-				requestId, method, dispatcherType);
+		logger.info("[preHandle] url:{}, requestId:{}, method:{}, dispatcherType:{}", request.getRequestURI(), requestId, method, dispatcherType);
 
 		if (requestId == null || ("GET".equals(method))) {
 			return true;
@@ -115,8 +115,7 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 	}
 
 	/**
-	 * 在DispatcherServlet完全处理完请求后被调用,可用于清理资源等
-	 * 
+	 * 在视图解析完毕后被调用,可用于清理资源等
 	 * 当有拦截器抛出异常时,会从当前拦截器往回执行所有的拦截器的afterCompletion()
 	 */
 	@Override

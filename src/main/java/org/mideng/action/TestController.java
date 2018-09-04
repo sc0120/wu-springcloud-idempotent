@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class TestController {
 	Logger logger = LoggerFactory.getLogger(TestController.class);
 
-	
-
 	@RequestMapping(method = {RequestMethod.POST, RequestMethod.GET}, value = "/exec/{id}")
 	@ResponseBody
 	public String exec(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
@@ -45,7 +43,6 @@ public class TestController {
 	@RequestMapping(method = RequestMethod.POST, value = "/forward/{id}")
 	public String forward(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
 		logger.info("[forward] {}", id);
-
 		return "forward:/test/exec/" + id;
 	}
 

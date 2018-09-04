@@ -45,14 +45,12 @@ public class ForwardCallTest {
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests = new HttpEntity(headers);
 		
-		ResponseEntity<String> response = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests,
-				String.class);
+		ResponseEntity<String> response = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests, String.class);
 		String reponse1 = response.getBody();
 		
 		HttpEntity requests2 = new HttpEntity(headers);
 		
-		ResponseEntity<String> response2 = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests2,
-				String.class);
+		ResponseEntity<String> response2 = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests2, String.class);
 		String reponse2 = response2.getBody();
 		Assert.assertEquals("The same result", reponse1, reponse2);
 	}

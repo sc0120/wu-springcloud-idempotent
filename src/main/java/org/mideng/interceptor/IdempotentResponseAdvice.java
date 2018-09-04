@@ -1,4 +1,4 @@
-package org.mideng;
+package org.mideng.interceptor;
 
 import java.util.Map;
 
@@ -18,7 +18,12 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 
-//@ControllerAdvice(basePackages = "com.example.intecepter")
+/**
+ * 请求返回值增强，用于修改接口的返回值
+ * @author xiaoxuwu
+ *ResponseBodyAdvice 只支持 @ResponseBody 注解的 controller 方法
+ *RequestBodyAdvice 只支持带有 @RequestBody 注解的 controller 方法参数的方法，同时上报的数据必须是 json or xml
+ */
 @ControllerAdvice
 public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 
@@ -27,10 +32,27 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 	@Autowired
 	private IdempotentService idempotentService;
 	
+	
+	/**
+	 * 判断是否是支持的类型
+	 */
+	@Override
+	public boolean supports(MethodParameter arg0, Class<? extends HttpMessageConverter<?>> arg1) {
+		logger.debug("[supports] {}, IdempotentHolder.getIdempotentVo:{}", arg0.getMember().getName(), IdempotentHolder.getIdempotentVo());
+		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getKey()) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	
+	/**
+	 * 对返回结果进行处理
+	 */
 	@Override
 	public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
-			Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request,
-			ServerHttpResponse response) {
+			Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
 		logger.debug("[beforeBodyWrite] begin {}", body);
 
 		String idempotentKey = IdempotentHolder.getIdempotentVo().getKey();
@@ -47,25 +69,6 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 		IdempotentHolder.setIdempotentVo(idempotent);
 		logger.debug("[beforeBodyWrite] end");
 		return body;
-	}
-
-	
-	@Override
-	public boolean supports(MethodParameter arg0, Class<? extends HttpMessageConverter<?>> arg1) {
-		logger.debug("[supports] {}, IdempotentHolder.getIdempotentVo:{}", arg0.getMember().getName(),
-				IdempotentHolder.getIdempotentVo());
-		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getKey()) {
-			return false;
-		} else {
-			return true;
-		}
-		
-//		if (IdempotentHolder.STATUS_BEGIN.equals(IdempotentHolder.getStatus()) 
-//				|| IdempotentHolder.STATUS_REDIRECT.equals(IdempotentHolder.getStatus())) {
-//			return true;
-//		} else {
-//			return false;
-//		}
 	}
 
 }

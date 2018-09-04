@@ -38,7 +38,7 @@ public class IdempotentService{
 	
 	public boolean lock(String key, Idempotent idempotent) {
 		boolean isCreatedLock =  redisService.lock(key, "idempotentKey", idempotent.getKey());
-		setCache(key, idempotent);
+		setCache(key, idempotent);//未获取到锁不应该在保存吧？
 		return isCreatedLock;
 	}
 

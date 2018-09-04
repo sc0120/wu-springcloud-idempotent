@@ -67,13 +67,12 @@ public class ExceptionCallTest {
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests = new HttpEntity(headers);
 		
-		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests,
-				String.class);
+		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests, String.class);
 		String reponse1 = response.getBody();
 		
 		MultiValueMap<String, String> headers2 = new LinkedMultiValueMap<String, String>();
-		headers.add(Constants.REQ_IDEM_ID, requestId2);
-		headers.add("Content-Type", "application/json");
+		headers2.add(Constants.REQ_IDEM_ID, requestId2);
+		headers2.add("Content-Type", "application/json");
 		HttpEntity requests2 = new HttpEntity(headers2);
 		
 		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests2, String.class);
