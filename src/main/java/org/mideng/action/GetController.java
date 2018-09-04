@@ -1,4 +1,4 @@
-package org.amu.starter.springcloud.idempotent.webapp;
+package org.mideng.action;
 
 import java.util.UUID;
 
@@ -14,40 +14,40 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
-@RequestMapping(value = "/test")
-public class TestController {
-	Logger logger = LoggerFactory.getLogger(TestController.class);
+@RequestMapping(value = "/get")
+public class GetController {
+	Logger logger = LoggerFactory.getLogger(GetController.class);
 
 	
 
-	@RequestMapping(method = {RequestMethod.POST, RequestMethod.GET}, value = "/exec/{id}")
+	@RequestMapping(method = RequestMethod.GET, value = "/exec/{id}")
 	@ResponseBody
 	public String exec(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
 		logger.info("[exec] {}", id);
 		return id + "|#|" + UUID.randomUUID();
 	}
 	
-	@RequestMapping(method = RequestMethod.POST, value = "/exception/{id}")
+	@RequestMapping(method = RequestMethod.GET, value = "/exception/{id}")
 	@ResponseBody
 	public String exception(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
 		logger.info("[exec] {}", id);
 		throw new Exception ("just a exception");
 	}
 	
-	@RequestMapping(method = RequestMethod.POST, value = "/redirect/{id}")
+	@RequestMapping(method = RequestMethod.GET, value = "/redirect/{id}")
 	private String redirect(HttpServletRequest request, HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
 		logger.info("[redirect] {}, {}, {}", id, request.getHeader("X-Mock-Referer"), request.getHeader("X-Real-IP"));
-		return "redirect:/test/exec/" + id;
+		return "redirect:/get/exec/" + id;
 	}
 
-	@RequestMapping(method = RequestMethod.POST, value = "/forward/{id}")
+	@RequestMapping(method = RequestMethod.GET, value = "/forward/{id}")
 	public String forward(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {
 		logger.info("[forward] {}", id);
 
-		return "forward:/test/exec/" + id;
+		return "forward:/get/exec/" + id;
 	}
 
-	@RequestMapping(method = RequestMethod.POST, value = "/timeout/{id}")
+	@RequestMapping(method = RequestMethod.GET, value = "/timeout/{id}")
 	@ResponseBody
 //	@Loggable
 	public String timeout(HttpServletResponse response, @PathVariable(value="id")  String id) throws Exception {

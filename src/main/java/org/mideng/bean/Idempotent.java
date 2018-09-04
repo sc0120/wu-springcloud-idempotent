@@ -1,16 +1,16 @@
-package org.amu.starter.springcloud.idempotent;
+package org.mideng.bean;
 
 import java.util.Map;
 
-public class IdempotentVo {
+public class Idempotent {
 
-	public static final Integer IDEMPOMENT_STATUS_START = 100;
-	public static final Integer IDEMPOMENT_STATUS_REDIRECT = 101;
-	public static final Integer IDEMPOMENT_STATUS_FINISIED = 200;
+	public static final Integer STATUS_START = 100;
+	public static final Integer STATUS_REDIRECT = 101;
+	public static final Integer STATUS_FINISIED = 200;
 	
-	private String idempotentKey;
+	private String key;
 
-	private Integer idempotentStatus;
+	private Integer status;
 	
 	private Integer statusCode;
 	
@@ -54,20 +54,21 @@ public class IdempotentVo {
 		this.result = result;
 	}
 
-	public Integer getIdempotentStatus() {
-		return idempotentStatus;
+	public String getKey() {
+		return key;
 	}
 
-	public void setIdempotentStatus(Integer idempotentStatus) {
-		this.idempotentStatus = idempotentStatus;
+	public void setKey(String key) {
+		this.key = key;
 	}
 
-	public String getIdempotentKey() {
-		return idempotentKey;
+	public Integer getStatus() {
+		return status;
 	}
 
-	public void setIdempotentKey(String idempotentKey) {
-		this.idempotentKey = idempotentKey;
+	public void setStatus(Integer status) {
+		this.status = status;
 	}
+
 	
 }

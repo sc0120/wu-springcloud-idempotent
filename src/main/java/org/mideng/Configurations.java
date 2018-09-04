@@ -1,4 +1,4 @@
-package org.amu.starter.springcloud.idempotent;
+package org.mideng;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -12,8 +12,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
  *
  */
 @Configuration
-@ComponentScan(basePackages = { "org.amu.starter.springcloud.idempotent" })
-public class GlobalTraceConfiguration extends WebMvcConfigurerAdapter {
+@ComponentScan(basePackages = { "org.mideng" })
+public class Configurations extends WebMvcConfigurerAdapter {
 
 	@Autowired
 	private IdempotentInterceptor idempotentInterceptor;

@@ -1,4 +1,4 @@
-package org.amu.starter.springcloud.idempotent.webapp;
+package org.mideng;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableAutoConfiguration
 @SpringBootApplication
-@ComponentScan(basePackages={"org.amu.starter.springcloud.idempotent"})
-public class IdempotentTestApplication {
+@ComponentScan(basePackages={"org.mideng"})
+public class Application {
 	public static void main(String[] args) {
-		SpringApplication.run(IdempotentTestApplication.class, args);
+		SpringApplication.run(Application.class, args);
 	}
 }

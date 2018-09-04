@@ -1,9 +1,11 @@
-package org.amu.starter.springcloud.idempotent;
+package org.mideng;
 
 import java.util.Map;
 
-import org.amu.starter.springcloud.idempotent.cache.IdempotentCacheInterface;
-import org.amu.starter.springcloud.idempotent.cache.JsonMapper;
+import org.mideng.bean.Idempotent;
+import org.mideng.service.IdempotentHolder;
+import org.mideng.service.IdempotentService;
+import org.mideng.util.JsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +23,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 
 	private static final Logger logger = LoggerFactory.getLogger(IdempotentResponseAdvice.class);
-
-//	@Autowired
-//	private IdempotentCacheManager idempotentCacheManager;
 	
 	@Autowired
-	private IdempotentCacheInterface idempotentCacheInterface;
+	private IdempotentService idempotentService;
 	
 	@Override
 	public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
@@ -34,29 +33,28 @@ public class IdempotentResponseAdvice implements ResponseBodyAdvice<Object> {
 			ServerHttpResponse response) {
 		logger.debug("[beforeBodyWrite] begin {}", body);
 
-		String idempotentKey = IdempotentHolder.getIdempotentVo().getIdempotentKey();
-		IdempotentVo idempotentVo = IdempotentHolder.getIdempotentVo();
+		String idempotentKey = IdempotentHolder.getIdempotentVo().getKey();
+		Idempotent idempotent = IdempotentHolder.getIdempotentVo();
 
 		if (body instanceof Map) {
 			JsonMapper jsonMapper = new JsonMapper();
-			idempotentVo.setResult(jsonMapper.toJson(body));
+			idempotent.setResult(jsonMapper.toJson(body));
 		} else {
-			idempotentVo.setResult(body.toString());
+			idempotent.setResult(body.toString());
 		}
-		idempotentVo.setIdempotentStatus(IdempotentVo.IDEMPOMENT_STATUS_FINISIED);
-		idempotentCacheInterface.setCache(idempotentKey, idempotentVo);
-
-		IdempotentHolder.setIdempotentVo(idempotentVo);
-
+		idempotent.setStatus(Idempotent.STATUS_FINISIED);
+		idempotentService.setCache(idempotentKey, idempotent);
+		IdempotentHolder.setIdempotentVo(idempotent);
 		logger.debug("[beforeBodyWrite] end");
 		return body;
 	}
 
+	
 	@Override
 	public boolean supports(MethodParameter arg0, Class<? extends HttpMessageConverter<?>> arg1) {
 		logger.debug("[supports] {}, IdempotentHolder.getIdempotentVo:{}", arg0.getMember().getName(),
 				IdempotentHolder.getIdempotentVo());
-		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getIdempotentKey()) {
+		if (null == IdempotentHolder.getIdempotentVo() || null == IdempotentHolder.getIdempotentVo().getKey()) {
 			return false;
 		} else {
 			return true;

@@ -1,14 +1,9 @@
-package org.amu.starter.springcloud.idempotent.test;
+package org.mideng.test;
 
-import java.util.UUID;
-
-import org.amu.starter.springcloud.idempotent.Constants;
-import org.amu.starter.springcloud.idempotent.webapp.IdempotentTestApplication;
-import org.junit.Assert;
 import org.junit.FixMethodOrder;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.mideng.Application;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,15 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 //@RunWith(SpringJUnit4ClassRunner.class)
 //@SpringApplicationConfiguration(classes = IdempotentInterceptorTests.Application.class)
@@ -35,7 +23,7 @@ import org.springframework.web.client.RestTemplate;
 //@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=IdempotentTestApplication.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
 //启动IdempotentTestApplication的配置

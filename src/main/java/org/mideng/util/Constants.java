@@ -1,4 +1,4 @@
-package org.amu.starter.springcloud.idempotent;
+package org.mideng.util;
 
 /**
  * 

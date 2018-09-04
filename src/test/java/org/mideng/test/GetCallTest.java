@@ -1,14 +1,14 @@
-package org.amu.starter.springcloud.idempotent.test;
+package org.mideng.test;
 
 import java.util.UUID;
 
-import org.amu.starter.springcloud.idempotent.Constants;
-import org.amu.starter.springcloud.idempotent.webapp.IdempotentTestApplication;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.mideng.Application;
+import org.mideng.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,15 +31,15 @@ import org.springframework.util.MultiValueMap;
 //@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=IdempotentTestApplication.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
 // 启动IdempotentTestApplication的配置
 @Configuration
 @EnableAutoConfiguration
-public class GetForwardCallTest {
+public class GetCallTest {
 
-	private static final String REQ_URL = "/get/forward/123";
+	private static final String REQ_URL = "/get/exec/123";
 	
 	@Autowired
 	private TestRestTemplate restTemplate;

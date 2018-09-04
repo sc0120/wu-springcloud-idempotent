@@ -1,4 +1,4 @@
-package org.amu.starter.springcloud.idempotent;
+package org.mideng;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -9,7 +9,10 @@ import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.amu.starter.springcloud.idempotent.cache.IdempotentCacheInterface;
+import org.mideng.bean.Idempotent;
+import org.mideng.service.IdempotentHolder;
+import org.mideng.service.IdempotentService;
+import org.mideng.util.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +28,7 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 	private static final Integer HTTP_CODE_IDEMPOTENT_FAIL = 499;
 	
 	@Autowired
-	private IdempotentCacheInterface idempotentCacheInterface;
+	private IdempotentService idempotentService;
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -40,41 +43,37 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 			return true;
 		}
 
-		IdempotentVo idempotentVo = null;
+		Idempotent idempotent = null;
 		// 如果redis出现连接异常。所有的幂等操作全部取消
 		try {
-			idempotentVo = idempotentCacheInterface.get(requestId);
+			idempotent = idempotentService.getCache(requestId);
 		} catch (Exception e) {
 			return true;
 		}
 
-		if (idempotentVo.getIdempotentKey() == null) {
-			idempotentVo = new IdempotentVo();
-			idempotentVo.setIdempotentKey(requestId);
-			idempotentVo.setIdempotentStatus(IdempotentVo.IDEMPOMENT_STATUS_START);
+		if (idempotent.getKey() == null) {
+			idempotent = new Idempotent();
+			idempotent.setKey(requestId);
+			idempotent.setStatus(Idempotent.STATUS_START);
 
-			boolean isCreatedLock = idempotentCacheInterface.lock(requestId, idempotentVo);
+			boolean isCreatedLock = idempotentService.lock(requestId, idempotent);
 			
 			if (!isCreatedLock) {
 				inProcessResp(response);
 				return false;
 			}
 			
-			IdempotentHolder.setIdempotentVo(idempotentVo);
+			IdempotentHolder.setIdempotentVo(idempotent);
 			return true;
 		}
 		if (DispatcherType.REQUEST.equals(dispatcherType)) {
-			// String key = IdempotentHolder.getIdempotentKey();
-			// logger.info("[preHandle] IdempotentHolder.getIdempotentKey():
-			// {}", key);
-			// logger.info("[preHandle] is a Idempotent Call: {}");
-			if (IdempotentVo.IDEMPOMENT_STATUS_FINISIED.equals(idempotentVo.getIdempotentStatus())) {
-				response.setStatus(idempotentVo.getStatusCode());
-				if (null != idempotentVo.getResult()) {
-					response.getOutputStream().write(idempotentVo.getResult().getBytes());
+			if (Idempotent.STATUS_FINISIED.equals(idempotent.getStatus())) {
+				response.setStatus(idempotent.getStatusCode());
+				if (null != idempotent.getResult()) {
+					response.getOutputStream().write(idempotent.getResult().getBytes());
 				}
-				if (null != idempotentVo.getHeaders()) {
-					Map<String, String> headers = idempotentVo.getHeaders();
+				if (null != idempotent.getHeaders()) {
+					Map<String, String> headers = idempotent.getHeaders();
 					for (String name : headers.keySet()) {
 						response.setHeader(name, headers.get(name));
 					}
@@ -82,10 +81,10 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 
 				response.getOutputStream().flush();
 				return false;
-			} else if (IdempotentVo.IDEMPOMENT_STATUS_REDIRECT.equals(idempotentVo.getIdempotentStatus())) {
+			} else if (Idempotent.STATUS_REDIRECT.equals(idempotent.getStatus())) {
 				// 除get请求外。其它的请求默认不支持redirect。暂时保留这块。预防以后需要支持get的操作
 				logger.debug("[preHandle] reffer to a redirect request");
-				IdempotentHolder.setIdempotentVo(idempotentVo);
+				IdempotentHolder.setIdempotentVo(idempotent);
 				return true;
 			} else {// 如果不为FINISHED状态。说明正在进展中
 				inProcessResp(response);
@@ -93,10 +92,10 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 			}
 
 		} else if (DispatcherType.ERROR.equals(dispatcherType)) {
-			IdempotentHolder.setIdempotentVo(idempotentVo);
+			IdempotentHolder.setIdempotentVo(idempotent);
 			return true;
 		} else if (DispatcherType.FORWARD.equals(dispatcherType)) {
-			IdempotentHolder.setIdempotentVo(idempotentVo);
+			IdempotentHolder.setIdempotentVo(idempotent);
 			return true;
 		}
 		return true;
@@ -127,25 +126,23 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 		int respStatus = response.getStatus();
 		logger.info("[afterCompletion] {}, {}，{}", requestUri, respStatus, ex == null);
 
-		IdempotentVo idempotentVo = IdempotentHolder.getIdempotentVo();
+		Idempotent idempotent = IdempotentHolder.getIdempotentVo();
 
-		if (idempotentVo == null || idempotentVo.getIdempotentKey() == null) {
+		if (idempotent == null || idempotent.getKey() == null) {
 			IdempotentHolder.clear();
 			return;
 		}
 
-		String idempotentKey = idempotentVo.getIdempotentKey();
+		String idempotentKey = idempotent.getKey();
 		// 重定向
 		if (respStatus >= 300 && respStatus < 400) {
 			logger.info("[afterCompletion] a redirect , httpStatusCode:{}", respStatus);
-			idempotentVo.setIdempotentStatus(IdempotentVo.IDEMPOMENT_STATUS_REDIRECT);
-			idempotentCacheInterface.setCache(idempotentKey, idempotentVo);
+			idempotent.setStatus(Idempotent.STATUS_REDIRECT);
+			idempotentService.setCache(idempotentKey, idempotent);
 		}
 
-		if (IdempotentVo.IDEMPOMENT_STATUS_FINISIED.equals(idempotentVo.getIdempotentStatus())) {
-
-			idempotentVo.setStatusCode(response.getStatus());
-
+		if (Idempotent.STATUS_FINISIED.equals(idempotent.getStatus())) {
+			idempotent.setStatusCode(response.getStatus());
 			Collection<String> headerNames = response.getHeaderNames();
 			if (headerNames != null && headerNames.size() != 0) {
 				Map<String, String> headers = new HashMap<>();
@@ -154,17 +151,15 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 							|| name.equals("X-Application-Context")) {
 						continue;
 					}
-
 					headers.put(name, response.getHeader(name));
-
 				}
-				idempotentVo.setHeaders(headers);
+				idempotent.setHeaders(headers);
 			}
-			idempotentCacheInterface.setCache(idempotentKey, idempotentVo);
+			idempotentService.setCache(idempotentKey, idempotent);
 		}
-
 		IdempotentHolder.clear();
 	}
+	
 	
 	private void inProcessResp(HttpServletResponse response) throws IOException {
 		response.setStatus(HTTP_CODE_IDEMPOTENT_FAIL);

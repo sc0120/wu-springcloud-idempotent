@@ -1,14 +1,14 @@
-package org.amu.starter.springcloud.idempotent.test;
+package org.mideng.test;
 
 import java.util.UUID;
 
-import org.amu.starter.springcloud.idempotent.Constants;
-import org.amu.starter.springcloud.idempotent.webapp.IdempotentTestApplication;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.mideng.Application;
+import org.mideng.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,51 +31,49 @@ import org.springframework.util.MultiValueMap;
 //@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=IdempotentTestApplication.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
 // 启动IdempotentTestApplication的配置
 @Configuration
 @EnableAutoConfiguration
-public class GetCallTest {
+public class ForwardCallTest {
 
-	private static final String REQ_URL = "/get/exec/123";
-	
 	@Autowired
 	private TestRestTemplate restTemplate;
-	
+
 	@Test
-	public void execSameCall() {
-		String requestId = "execSameCall:"+UUID.randomUUID();
+	public void forwardSameCall() {
+		String requestId = "forwardSameCall_:"+UUID.randomUUID();
 		
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
 		headers.add(Constants.REQ_IDEM_ID, requestId);
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests = new HttpEntity(headers);
 		
-		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests,
+		ResponseEntity<String> response = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests,
 				String.class);
 		String reponse1 = response.getBody();
 		
 		HttpEntity requests2 = new HttpEntity(headers);
 		
-		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests2,
+		ResponseEntity<String> response2 = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests2,
 				String.class);
 		String reponse2 = response2.getBody();
-		Assert.assertNotEquals("The same result", reponse1, reponse2);
+		Assert.assertEquals("The same result", reponse1, reponse2);
 	}
 	
 	@Test
 	public void execDifferentCall() {
-		String requestId1 = "execDiffrentCall_:"+UUID.randomUUID();
-		String requestId2 = "execDiffrentCall_:"+UUID.randomUUID();
+		String requestId1 = "forwardSameCall_:"+UUID.randomUUID();
+		String requestId2 = "forwardSameCall_:"+UUID.randomUUID();
 
 		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
 		headers.add(Constants.REQ_IDEM_ID, requestId1);
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests = new HttpEntity(headers);
 		
-		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests,
+		ResponseEntity<String> response = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests,
 				String.class);
 		String reponse1 = response.getBody();
 		
@@ -84,7 +82,7 @@ public class GetCallTest {
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests2 = new HttpEntity(headers2);
 		
-		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests2,
+		ResponseEntity<String> response2 = restTemplate.exchange("/test/forward/123", HttpMethod.POST, requests2,
 				String.class);
 		String reponse2 = response2.getBody();
 		System.out.println(reponse1 + "\n" + reponse2);

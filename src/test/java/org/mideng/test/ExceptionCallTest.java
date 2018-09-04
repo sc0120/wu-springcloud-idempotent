@@ -1,14 +1,14 @@
-package org.amu.starter.springcloud.idempotent.test;
+package org.mideng.test;
 
 import java.util.UUID;
 
-import org.amu.starter.springcloud.idempotent.Constants;
-import org.amu.starter.springcloud.idempotent.webapp.IdempotentTestApplication;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.mideng.Application;
+import org.mideng.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,16 +31,16 @@ import org.springframework.util.MultiValueMap;
 //@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=IdempotentTestApplication.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
 // 启动IdempotentTestApplication的配置
 @Configuration
 @EnableAutoConfiguration
-public class NormalCallTest {
+public class ExceptionCallTest {
 
-	private static final String REQ_URL = "/test/exec/123";
-
+	private static final String REQ_URL = "/test/exception/123";
+	
 	@Autowired
 	private TestRestTemplate restTemplate;
 	
@@ -53,14 +53,12 @@ public class NormalCallTest {
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests = new HttpEntity(headers);
 		
-		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests,
-				String.class);
+		ResponseEntity<String> response = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests, String.class);
 		String reponse1 = response.getBody();
 		
-		HttpEntity requests2 = new HttpEntity(headers);
+ 		HttpEntity requests2 = new HttpEntity(headers);
 		
-		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests2,
-				String.class);
+		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.POST, requests2, String.class);
 		String reponse2 = response2.getBody();
 		Assert.assertEquals("The same result", reponse1, reponse2);
 	}
