@@ -24,17 +24,11 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 
-//@RunWith(SpringJUnit4ClassRunner.class)
-//@SpringApplicationConfiguration(classes = IdempotentInterceptorTests.Application.class)
-//@WebAppConfiguration
-//@IntegrationTest({"server.port=0"})
-//@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
-// 启动IdempotentTestApplication的配置
 @Configuration
 @EnableAutoConfiguration
 public class GetCallTest {
@@ -84,8 +78,7 @@ public class GetCallTest {
 		headers.add("Content-Type", "application/json");
 		HttpEntity requests2 = new HttpEntity(headers2);
 		
-		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests2,
-				String.class);
+		ResponseEntity<String> response2 = restTemplate.exchange(REQ_URL, HttpMethod.GET, requests2, String.class);
 		String reponse2 = response2.getBody();
 		System.out.println(reponse1 + "\n" + reponse2);
 		Assert.assertNotEquals("The different result", reponse1, reponse2);

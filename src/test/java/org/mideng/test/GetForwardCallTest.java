@@ -24,17 +24,11 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 
-//@RunWith(SpringJUnit4ClassRunner.class)
-//@SpringApplicationConfiguration(classes = IdempotentInterceptorTests.Application.class)
-//@WebAppConfiguration
-//@IntegrationTest({"server.port=0"})
-//@DirtiesContext
 @ContextConfiguration
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes=Application.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 
-// 启动IdempotentTestApplication的配置
 @Configuration
 @EnableAutoConfiguration
 public class GetForwardCallTest {
