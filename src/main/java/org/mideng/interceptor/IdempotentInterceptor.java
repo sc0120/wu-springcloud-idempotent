@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.mideng.bean.Idempotent;
 import org.mideng.service.IdempotentHolder;
 import org.mideng.service.IdempotentService;
+import org.mideng.service.RedisLock;
 import org.mideng.util.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,11 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 	
 	@Autowired
 	private IdempotentService idempotentService;
+	
+	@Autowired
+	private RedisLock redisLock;
 
-	//在请求到方法前出发
+	//在请求到方法前触发
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
@@ -38,66 +42,39 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 		DispatcherType dispatcherType = request.getDispatcherType();
 		String method = request.getMethod().toUpperCase();
 		logger.info("[preHandle] url:{}, requestId:{}, method:{}, dispatcherType:{}", request.getRequestURI(), requestId, method, dispatcherType);
-
-		if (requestId == null || ("GET".equals(method))) {
-			return true;
-		}
+		if (requestId == null)  return true;//不包含requestId的不进行幂等处理, 一般 ("GET".equals(method))是查询数据也不需要
 
 		Idempotent idempotent = null;
-		// 如果redis出现连接异常。所有的幂等操作全部取消
-		try {
+		try {// 如果redis出现连接异常。所有的幂等操作全部取消
 			idempotent = idempotentService.getCache(requestId);
 		} catch (Exception e) {
-			return true;
+			//redis异常无法提供幂等性操作，直接返回
+			return false;
+		}
+		
+		//判断请求是否重复提交，如果是且已经处理完毕，直接返回上次的请求结果
+		if (null != idempotent.getKey() && Idempotent.STATUS_FINISIED.equals(idempotent.getStatus())) {
+			doReponse(response, idempotent);
+			return false;//中断后续处理
 		}
 
-		if (idempotent.getKey() == null) {
-			idempotent = new Idempotent();
-			idempotent.setKey(requestId);
-			idempotent.setStatus(Idempotent.STATUS_START);
-
-			boolean isCreatedLock = idempotentService.lock(requestId, idempotent);
-			
-			if (!isCreatedLock) {
-				inProcessResp(response);
-				return false;
-			}
-			
-			IdempotentHolder.setIdempotentVo(idempotent);
-			return true;
+		//用户首次请求直接执行或者重复请求处理结果未完成重新获取锁重新执行
+		boolean isCreatedLock = redisLock.lock(requestId, System.currentTimeMillis() + 60000 + "");//获得60秒的锁
+		if (!isCreatedLock) {//未获取到锁说明被其他服务器或者线程抢到在正在处理，直接返回前端等待处理
+			inProcessResp(response);
+			return false;
 		}
-		if (DispatcherType.REQUEST.equals(dispatcherType)) {
-			if (Idempotent.STATUS_FINISIED.equals(idempotent.getStatus())) {
-				response.setStatus(idempotent.getStatusCode());
-				if (null != idempotent.getResult()) {
-					response.getOutputStream().write(idempotent.getResult().getBytes());
-				}
-				if (null != idempotent.getHeaders()) {
-					Map<String, String> headers = idempotent.getHeaders();
-					for (String name : headers.keySet()) {
-						response.setHeader(name, headers.get(name));
-					}
-				}
+		idempotent = new Idempotent(requestId, Idempotent.STATUS_START, null, null, null);
+		idempotentService.setCache(requestId, idempotent);//获得锁保存为了不同服务器共享
+		IdempotentHolder.setIdempotentVo(idempotent);
 
-				response.getOutputStream().flush();
-				return false;
-			} else if (Idempotent.STATUS_REDIRECT.equals(idempotent.getStatus())) {
-				// 除get请求外。其它的请求默认不支持redirect。暂时保留这块。预防以后需要支持get的操作
-				logger.debug("[preHandle] reffer to a redirect request");
-				IdempotentHolder.setIdempotentVo(idempotent);
-				return true;
-			} else {// 如果不为FINISHED状态。说明正在进展中
-				inProcessResp(response);
-				return false;
-			}
-
-		} else if (DispatcherType.ERROR.equals(dispatcherType)) {
-			IdempotentHolder.setIdempotentVo(idempotent);
-			return true;
-		} else if (DispatcherType.FORWARD.equals(dispatcherType)) {
-			IdempotentHolder.setIdempotentVo(idempotent);
-			return true;
-		}
+//		if (DispatcherType.ERROR.equals(dispatcherType)) {//本地保存为了本地forward跳转用
+//			return true;
+//		} 
+//		
+//		if (DispatcherType.FORWARD.equals(dispatcherType)) {
+//			return true;
+//		}
 		return true;
 	}
 
@@ -126,8 +103,8 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 		logger.info("[afterCompletion] {}, {}，{}", requestUri, respStatus, ex == null);
 
 		Idempotent idempotent = IdempotentHolder.getIdempotentVo();
-
-		if (idempotent == null || idempotent.getKey() == null) {
+		if (idempotent == null) return;
+		if (idempotent.getKey() == null) {
 			IdempotentHolder.clear();
 			return;
 		}
@@ -163,5 +140,25 @@ public class IdempotentInterceptor extends HandlerInterceptorAdapter {
 	private void inProcessResp(HttpServletResponse response) throws IOException {
 		response.setStatus(HTTP_CODE_IDEMPOTENT_FAIL);
 		response.getOutputStream().flush();
+	}
+	
+	
+	//将当前结果返回给前端
+	private void doReponse(HttpServletResponse response, Idempotent idempotent) {
+		response.setStatus(idempotent.getStatusCode());
+		try {
+			if (null != idempotent.getResult()) {
+				response.getOutputStream().write(idempotent.getResult().getBytes());
+			}
+			if (null != idempotent.getHeaders()) {
+				Map<String, String> headers = idempotent.getHeaders();
+				for (String name : headers.keySet()) {
+					response.setHeader(name, headers.get(name));
+				}
+			}
+			response.getOutputStream().flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

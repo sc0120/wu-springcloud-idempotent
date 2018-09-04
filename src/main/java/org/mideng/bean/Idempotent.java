@@ -20,6 +20,20 @@ public class Idempotent {
 	
 	private Map<String, String> headers;
 
+	public Idempotent() {
+	}
+	
+	
+	public Idempotent(String key, Integer status, Integer statusCode, String statusMessage,
+			Map<String, String> headers) {
+		super();
+		this.key = key;
+		this.status = status;
+		this.statusCode = statusCode;
+		this.statusMessage = statusMessage;
+		this.headers = headers;
+	}
+
 
 	public Map<String, String> getHeaders() {
 		return headers;
