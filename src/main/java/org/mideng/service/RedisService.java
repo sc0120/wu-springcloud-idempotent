@@ -51,11 +51,11 @@ public class RedisService {
 		ssRedisTemplate.expire(key, expireTime, TimeUnit.SECONDS);
 	}
 
-	public boolean lock(String key, String hashKey, Object value) {
-		boolean rtn = ssHash.putIfAbsent(key, hashKey, value);
-		ssRedisTemplate.expire(key, expireTime, TimeUnit.SECONDS);
-		return rtn;
-	}
+//	public boolean lock(String key, String hashKey, Object value) {
+//		boolean rtn = ssHash.putIfAbsent(key, hashKey, value);
+//		ssRedisTemplate.expire(key, expireTime, TimeUnit.SECONDS);
+//		return rtn;
+//	}
 	
 	public Object get(String key, String hashKey) {
 		return ssHash.get(key, hashKey);
